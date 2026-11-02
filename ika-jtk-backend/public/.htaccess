@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Intercept Social Media Bot / Scraper (WhatsApp, Facebook, Twitter, Telegram, LinkedIn)
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|WhatsApp|TelegramBot|Twitterbot|LinkedInBot|Discordbot|Slackbot) [NC]
+    RewriteCond %{REQUEST_URI} ^/(berita|agenda|loker|pemilu|member|alumni|candidate)/ [NC]
+    RewriteRule ^(.*)$ bot-meta.php?url=/$1 [QSA,L]
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ index.php?_url=/$1 [QSA,L]
+</IfModule>
+
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+</IfModule>

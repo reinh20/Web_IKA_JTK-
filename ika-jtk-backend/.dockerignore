@@ -1,0 +1,6 @@
+vendor
+.git
+.env
+*.log
+composer.phar
+docker-compose.yml

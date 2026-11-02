@@ -1,0 +1,1080 @@
+openapi: 3.0.3
+info:
+  title: IKA JTK Backend API
+  description: |
+    API untuk sistem informasi Ikatan Keluarga Alumni Jurusan Teknik Komputer
+    dan Informatika (IKA JTK) Politeknik Negeri Bandung.
+
+    **Autentikasi:** sebagian besar endpoint memerlukan header
+    `Authorization: Bearer <JWT>`. Token diperoleh dari endpoint login
+    (`/api/auth/login` untuk alumni, `/api/admin/auth/login` untuk admin).
+
+    Endpoint admin (`/api/admin/*`) tunduk pada RBAC berdasarkan role
+    (Super Admin, Admin Verifikator, Admin Viewer).
+  version: 1.0.0
+servers:
+  - url: /
+    description: Server saat ini (host tempat dokumentasi ini dibuka)
+  - url: http://localhost:5000
+    description: Development (PHP built-in server)
+
+tags:
+  - name: Auth (Alumni)
+    description: Registrasi, verifikasi OTP, login, dan profil alumni
+  - name: Elections (Public)
+    description: Daftar pemilu publik dan voting
+  - name: Upload
+    description: Unggah file (avatar, dokumen, umum)
+  - name: Admin Auth
+    description: Autentikasi panel admin
+  - name: Admin Users
+    description: Manajemen akun admin (Super Admin saja)
+  - name: Admin Roles
+    description: Manajemen role dan permission admin (Super Admin)
+  - name: Admin Alumni
+    description: Manajemen & verifikasi data alumni
+  - name: Admin Elections
+    description: Manajemen pemilu & kandidat
+  - name: Admin Berita
+    description: Manajemen berita
+  - name: Admin Agenda
+    description: Manajemen agenda/event
+  - name: Admin Loker
+    description: Manajemen lowongan kerja
+  - name: Admin Testimoni
+    description: Moderasi testimoni alumni
+  - name: Admin Pemilu
+    description: Manajemen pemilu (modul terpisah)
+  - name: Admin Alumni Grafis
+    description: Manajemen & verifikasi pengajuan Alumni Grafis
+  - name: Admin Audit Log
+    description: Riwayat aktivitas dan audit log sistem
+  - name: Portal Berita
+    description: Berita untuk publik dan alumni
+  - name: Portal Agenda
+    description: Agenda untuk publik dan alumni
+  - name: Portal Loker
+    description: Lowongan kerja untuk publik dan alumni
+  - name: Portal Alumni
+    description: Direktori alumni untuk publik
+  - name: Portal Lamaran
+    description: Daftar lamaran pekerjaan oleh alumni
+  - name: Portal Config
+    description: Konfigurasi portal
+  - name: Testimoni (Public)
+    description: Endpoint publik untuk testimoni
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        status: { type: string, example: error }
+        message: { type: string }
+        error: { type: string }
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+    AuthResponse:
+      type: object
+      properties:
+        message: { type: string }
+        token: { type: string, description: JWT token }
+        user: { type: object }
+    Alumni:
+      type: object
+      properties:
+        id: { type: string }
+        nama: { type: string }
+        angkatan: { type: integer }
+        tanggalLahir: { type: string }
+        jenisKelamin: { type: string }
+        email: { type: string, format: email }
+        username: { type: string }
+        status: { type: string, enum: [Pending, PENDING, ACTIVE, VERIFIED, Approved] }
+        emailVerified: { type: boolean }
+        motto: { type: string }
+        avatarUrl: { type: string }
+        hp: { type: string }
+        linkedin: { type: string }
+        alamat: { type: string }
+        nomorIjazah: { type: string, nullable: true }
+        tahunLulus: { type: integer, nullable: true }
+        ipk: { type: number, format: float, maximum: 4.0, nullable: true }
+        ijazahFile: { type: string, nullable: true }
+        alumniGrafis:
+          type: object
+          nullable: true
+          properties:
+            kategori: { type: string }
+            id: { type: string }
+            status: { type: string, enum: [PENDING, APPROVED, REJECTED, ARCHIVED] }
+        pekerjaan: { type: array, items: { type: object } }
+        prestasi: { type: array, items: { type: object } }
+        keanggotaan: { type: string, enum: [Executive, 'Advisory Board', 'Supervisory Board', Alumni] }
+        emailVisibility: { type: string, enum: [public, private] }
+        nomorHandphoneVisibility: { type: string, enum: [public, private] }
+        alamatVisibility: { type: string, enum: [public, private] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AlumniGrafisRequest:
+      type: object
+      properties:
+        id: { type: string }
+        alumniId: { type: string }
+        kategori: { type: string }
+        grafisId: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, ARCHIVED] }
+        createdAt: { type: string, format: date-time }
+        alumni:
+          type: object
+          properties:
+            id: { type: string }
+            nama: { type: string }
+            angkatan: { type: integer }
+            avatarUrl: { type: string, nullable: true }
+        detail: { type: object, nullable: true }
+    AuditLog:
+      type: object
+      properties:
+        id: { type: string }
+        adminId: { type: string, nullable: true }
+        action: { type: string }
+        entity: { type: string }
+        entityId: { type: string, nullable: true }
+        details: { type: string, nullable: true }
+        ipAddress: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    Election:
+      type: object
+      properties:
+        id: { type: string }
+        judul: { type: string }
+        deskripsi: { type: string }
+        periodeStart: { type: string, format: date-time, nullable: true }
+        periodeEnd: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [Draft, Active, Ongoing, Completed, Closed] }
+        candidates: { type: array, items: { $ref: '#/components/schemas/Candidate' } }
+        totalSuara: { type: integer }
+        totalVoter: { type: integer }
+        createdAt: { type: string, format: date-time }
+    Candidate:
+      type: object
+      properties:
+        id: { type: string }
+        electionId: { type: string }
+        alumniId: { type: string, nullable: true }
+        nama: { type: string }
+        angkatan: { type: integer }
+        fotoUrl: { type: string }
+        nomorUrut: { type: integer }
+        visi: { type: string }
+        misi: { type: array, items: { type: string } }
+        pengalaman: { type: array, items: { type: string } }
+        voteCount: { type: integer }
+    Admin:
+      type: object
+      properties:
+        id: { type: string }
+        nama: { type: string }
+        email: { type: string, format: email }
+        username: { type: string }
+        role: { type: string, description: "Nama role dari tabel AdminRoles" }
+        avatarUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+    AdminRole:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        permissions: { type: array, items: { type: string } }
+        isSystem: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Berita:
+      type: object
+      properties:
+        id: { type: string }
+        judul: { type: string }
+        konten: { type: string }
+        bannerUrl: { type: string }
+        kategori: { type: string }
+        status: { type: string }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            nama: { type: string }
+            role: { type: string }
+            avatarUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Agenda:
+      type: object
+      properties:
+        id: { type: string }
+        judul: { type: string }
+        deskripsi: { type: string }
+        tanggalEvent: { type: string, format: date }
+        waktu: { type: string }
+        lokasi: { type: string }
+        bannerUrl: { type: string }
+        kategori: { type: string }
+        status: { type: string }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            nama: { type: string }
+            role: { type: string }
+            avatarUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Lamaran:
+      type: object
+      properties:
+        id: { type: string }
+        lokerId: { type: string }
+        posisi: { type: string }
+        perusahaan: { type: string }
+        logoUrl: { type: string }
+        status: { type: string }
+        dilamarPada: { type: string }
+  responses:
+    Unauthorized:
+      description: Token tidak ada / tidak valid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Role tidak memiliki akses (RBAC)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource tidak ditemukan
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+paths:
+  # ============ AUTH (ALUMNI) ============
+  /api/auth/register:
+    post:
+      tags: [Auth (Alumni)]
+      summary: Registrasi alumni baru (kirim OTP ke email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nama, angkatan, tanggalLahir, jenisKelamin, email, username, password]
+              properties:
+                nama: { type: string }
+                angkatan: { type: integer }
+                tanggalLahir: { type: string }
+                jenisKelamin: { type: string }
+                email: { type: string, format: email }
+                username: { type: string }
+                password: { type: string, minLength: 8 }
+      responses:
+        '201': { description: 'Registrasi berhasil, mengembalikan userId', content: { application/json: { schema: { type: object, properties: { message: { type: string }, userId: { type: string } } } } } }
+        '400': { description: Validasi gagal / sudah terdaftar, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/auth/verify-email:
+    post:
+      tags: [Auth (Alumni)]
+      summary: Verifikasi OTP dan aktifkan akun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, description: Kode OTP 6 digit }
+      responses:
+        '200': { description: Email terverifikasi + token, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '400': { description: Kode salah / kedaluwarsa }
+        '404': { description: Data pendaftaran tidak ditemukan }
+  /api/auth/resend-otp:
+    post:
+      tags: [Auth (Alumni)]
+      summary: Kirim ulang kode OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: OTP baru dikirim }
+        '404': { description: Data pendaftaran tidak ditemukan }
+  /api/auth/login:
+    post:
+      tags: [Auth (Alumni)]
+      summary: Login alumni
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emailOrUsername, password]
+              properties:
+                emailOrUsername: { type: string }
+                password: { type: string }
+      responses:
+        '200': { description: Login berhasil + token, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '401': { description: Kredensial salah }
+        '403': { description: Email belum diverifikasi }
+        
+  /api/auth/forgot-password:
+    post:
+      tags: [Auth (Alumni)]
+      summary: Meminta OTP untuk mereset kata sandi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, example: 'user@example.com' }
+      responses:
+        '200': { description: OTP reset password berhasil dikirim ke email, content: { application/json: { schema: { $ref: '#/components/schemas/Message' } } } }
+        '404': { description: Email tidak terdaftar, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '500': { description: Gagal mengirim email, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/auth/reset-password:
+    post:
+      tags: [Auth (Alumni)]
+      summary: Mereset kata sandi menggunakan OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, newPassword]
+              properties:
+                email: { type: string, format: email, example: 'user@example.com' }
+                otp: { type: string, example: '123456' }
+                newPassword: { type: string, example: 'NewPass123!' }
+      responses:
+        '200': { description: Kata sandi berhasil diubah, content: { application/json: { schema: { $ref: '#/components/schemas/Message' } } } }
+        '400': { description: OTP tidak valid atau kedaluwarsa, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: Email tidak terdaftar, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/auth/me:
+    get:
+      tags: [Auth (Alumni)]
+      summary: Profil alumni yang sedang login
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Data alumni, content: { application/json: { schema: { type: object, properties: { user: { $ref: '#/components/schemas/Alumni' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/auth/profile:
+    put:
+      tags: [Auth (Alumni)]
+      summary: Perbarui profil alumni (lengkapi data → status PENDING / Menunggu Verifikasi)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama: { type: string }
+                angkatan: { type: integer }
+                tanggalLahir: { type: string }
+                jenisKelamin: { type: string }
+                motto: { type: string }
+                avatarUrl: { type: string }
+                hp: { type: string }
+                linkedin: { type: string }
+                alamat: { type: string }
+                nomorIjazah: { type: string }
+                tahunLulus: { type: string }
+                ipk: { type: number }
+                ijazahFile: { type: string }
+                pekerjaan: { type: array, items: { type: object } }
+                prestasi: { type: array, items: { type: object } }
+                keanggotaan: { type: string, enum: [Executive, 'Advisory Board', 'Supervisory Board', Alumni] }
+                emailVisibility: { type: string, enum: [public, private] }
+                nomorHandphoneVisibility: { type: string, enum: [public, private] }
+
+                alamatVisibility: { type: string, enum: [public, private] }
+      responses:
+        '200': { description: Profil diperbarui }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ============ ELECTIONS (PUBLIC) ============
+  /api/elections:
+    get:
+      tags: [Elections (Public)]
+      summary: Daftar semua pemilu beserta kandidat
+      description: Publik. Jika menyertakan token, field `userHasVoted` akan terisi.
+      responses:
+        '200': { description: Daftar pemilu, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Election' } } } } }
+  /api/elections/{id}:
+    get:
+      tags: [Elections (Public)]
+      summary: Detail satu pemilu beserta kandidat
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Detail pemilu, content: { application/json: { schema: { $ref: '#/components/schemas/Election' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/elections/vote:
+    post:
+      tags: [Elections (Public)]
+      summary: Berikan suara (alumni terverifikasi)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [candidateId]
+              properties:
+                candidateId: { type: string }
+      responses:
+        '200': { description: Vote berhasil }
+        '400': { description: Sudah memilih / pemilu tidak aktif / candidateId kosong }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Bukan alumni terverifikasi }
+        '404': { description: Kandidat tidak ditemukan }
+
+  # ============ UPLOAD ============
+  /api/upload:
+    post:
+      tags: [Upload]
+      summary: Unggah file umum (pdf/jpg/jpeg/png/webp)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200': { description: 'Berhasil, mengembalikan { url }' }
+        '400': { description: Format tidak valid / tidak ada file }
+  /api/upload/avatar:
+    post:
+      tags: [Upload]
+      summary: Unggah avatar (jpg/jpeg/png/webp)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object, properties: { file: { type: string, format: binary } } }
+      responses:
+        '200': { description: 'Berhasil, mengembalikan { url }' }
+        '400': { description: Format tidak valid }
+  /api/upload/document:
+    post:
+      tags: [Upload]
+      summary: Unggah dokumen (pdf/jpg/jpeg/png)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object, properties: { file: { type: string, format: binary } } }
+      responses:
+        '200': { description: 'Berhasil, mengembalikan { url }' }
+        '400': { description: Format tidak valid }
+
+  # ============ ADMIN AUTH ============
+  /api/admin/auth/login:
+    post:
+      tags: [Admin Auth]
+      summary: Login admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emailOrUsername, password]
+              properties:
+                emailOrUsername: { type: string }
+                password: { type: string }
+      responses:
+        '200': { description: Login berhasil + token, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '401': { description: Kredensial admin tidak valid }
+  /api/admin/auth/me:
+    get:
+      tags: [Admin Auth]
+      summary: Profil admin yang sedang login
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Data admin, content: { application/json: { schema: { type: object, properties: { user: { $ref: '#/components/schemas/Admin' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ============ ADMIN USERS (Super Admin) ============
+  /api/admin/users:
+    get:
+      tags: [Admin Users]
+      summary: Daftar admin
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Daftar admin, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Admin' } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Admin Users]
+      summary: Buat admin baru
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nama, email, username, password]
+              properties:
+                nama: { type: string }
+                email: { type: string, format: email }
+                username: { type: string }
+                password: { type: string }
+                role: { type: string }
+      responses:
+        '201': { description: Admin dibuat }
+        '400': { description: Validasi gagal }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/users/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Admin Users]
+      summary: Detail admin
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Data admin }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Admin Users]
+      summary: Perbarui admin
+      security: [{ bearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/Admin' } } } }
+      responses: { '200': { description: Diperbarui }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Admin Users]
+      summary: Hapus admin
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Dihapus }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  # ============ ADMIN ROLES (Super Admin) ============
+  /api/admin/roles:
+    get:
+      tags: [Admin Roles]
+      summary: Daftar semua role
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Daftar role, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AdminRole' } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Admin Roles]
+      summary: Buat role baru
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, permissions]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                permissions: { type: array, items: { type: string } }
+      responses:
+        '201': { description: Role dibuat }
+        '400': { description: Validasi gagal / nama role duplikat }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/roles/{name}:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [Admin Roles]
+      summary: Perbarui role (non-sistem)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description: { type: string }
+                permissions: { type: array, items: { type: string } }
+      responses: { '200': { description: Diperbarui }, '400': { description: Role sistem tidak bisa diubah }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Admin Roles]
+      summary: Hapus role (non-sistem)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Dihapus }, '400': { description: Role sistem atau sedang digunakan }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  # ============ ADMIN ALUMNI ============
+  /api/admin/alumni:
+    get:
+      tags: [Admin Alumni]
+      summary: Daftar semua alumni
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Daftar alumni, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Alumni' } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Admin Alumni]
+      summary: Tambah alumni (langsung aktif)
+      security: [{ bearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/Alumni' } } } }
+      responses: { '201': { description: Alumni dibuat }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /api/admin/alumni/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Admin Alumni]
+      summary: Detail alumni
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Data alumni }, '404': { $ref: '#/components/responses/NotFound' } }
+    put:
+      tags: [Admin Alumni]
+      summary: Perbarui alumni
+      security: [{ bearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/Alumni' } } } }
+      responses: { '200': { description: Diperbarui }, '403': { $ref: '#/components/responses/Forbidden' } }
+    delete:
+      tags: [Admin Alumni]
+      summary: Hapus alumni
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Dihapus }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /api/admin/alumni/{id}/approve:
+    post:
+      tags: [Admin Alumni]
+      summary: Setujui (verifikasi) alumni
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Disetujui }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /api/admin/alumni/{id}/reject:
+    post:
+      tags: [Admin Alumni]
+      summary: Tolak alumni
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { reason: { type: string } } } } } }
+      responses: { '200': { description: Ditolak }, '403': { $ref: '#/components/responses/Forbidden' } }
+
+  # ============ ADMIN ALUMNI GRAFIS ============
+  /api/admin/alumni-grafis:
+    get:
+      tags: [Admin Alumni Grafis]
+      summary: Daftar pengajuan Alumni Grafis
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar pengajuan Alumni Grafis
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AlumniGrafisRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/alumni-grafis/{id}/verify:
+    post:
+      tags: [Admin Alumni Grafis]
+      summary: Verifikasi atau perbarui status Alumni Grafis
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action: { type: string, enum: [APPROVED, REJECTED, ARCHIVED] }
+                status: { type: string, enum: [APPROVED, REJECTED, ARCHIVED] }
+      responses:
+        '200':
+          description: Status alumni grafis berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  message: { type: string, example: Status alumni grafis berhasil diperbarui }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============ ADMIN AUDIT LOG ============
+  /api/admin/audit-logs:
+    get:
+      tags: [Admin Audit Log]
+      summary: Daftar audit log sistem (Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar riwayat audit log
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuditLog' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/audit-logs/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Admin Audit Log]
+      summary: Detail audit log
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Data detail audit log
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditLog' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============ ADMIN ELECTIONS ============
+  /api/admin/elections:
+    get:
+      tags: [Admin Elections]
+      summary: Daftar pemilu (dengan total suara & voter)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Daftar pemilu, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Election' } } } } } }
+    post:
+      tags: [Admin Elections]
+      summary: Buat pemilu
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [judul]
+              properties:
+                judul: { type: string }
+                deskripsi: { type: string }
+                periodeStart: { type: string, format: date-time }
+                periodeEnd: { type: string, format: date-time }
+                status: { type: string, enum: [Draft, Active, Ongoing, Completed, Closed] }
+      responses: { '201': { description: Pemilu dibuat }, '400': { description: Hanya satu pemilu Active/Ongoing diizinkan } }
+  /api/admin/elections/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get:
+      tags: [Admin Elections]
+      summary: Detail pemilu
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Detail }, '404': { $ref: '#/components/responses/NotFound' } }
+    put:
+      tags: [Admin Elections]
+      summary: Perbarui pemilu
+      security: [{ bearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/Election' } } } }
+      responses: { '200': { description: Diperbarui }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Admin Elections]
+      summary: Hapus pemilu (hanya status Draft)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Dihapus }, '400': { description: Pemilu berjalan/selesai tidak bisa dihapus } }
+  /api/admin/elections/{electionId}/candidates:
+    post:
+      tags: [Admin Elections]
+      summary: Tambah kandidat (hanya saat pemilu Draft)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: electionId, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                alumniId: { type: string }
+                nama: { type: string }
+                angkatan: { type: integer }
+                fotoUrl: { type: string }
+                nomorUrut: { type: integer }
+                visi: { type: string }
+                misi: { type: array, items: { type: string } }
+                pengalaman: { type: array, items: { type: string } }
+      responses: { '201': { description: Kandidat ditambahkan }, '400': { description: Nomor urut duplikat / pemilu bukan Draft } }
+  /api/admin/elections/{electionId}/candidates/{candidateId}:
+    parameters:
+      - { name: electionId, in: path, required: true, schema: { type: string } }
+      - { name: candidateId, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [Admin Elections]
+      summary: Perbarui kandidat (hanya saat pemilu Draft)
+      security: [{ bearerAuth: [] }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/Candidate' } } } }
+      responses: { '200': { description: Diperbarui }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Admin Elections]
+      summary: Hapus kandidat (hanya saat pemilu Draft)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Dihapus }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  # ============ ADMIN BERITA ============
+  /api/admin/berita:
+    get:
+      tags: [Admin Berita]
+      summary: Daftar berita
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Daftar berita } }
+    post:
+      tags: [Admin Berita]
+      summary: Buat berita
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judul: { type: string }
+                konten: { type: string }
+                bannerUrl: { type: string }
+                status: { type: string, enum: [Draft, Published] }
+      responses: { '201': { description: Dibuat } }
+  /api/admin/berita/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Admin Berita], summary: Detail berita, security: [{ bearerAuth: [] }], responses: { '200': { description: Detail }, '404': { $ref: '#/components/responses/NotFound' } } }
+    put: { tags: [Admin Berita], summary: Perbarui berita, security: [{ bearerAuth: [] }], responses: { '200': { description: Diperbarui } } }
+    delete: { tags: [Admin Berita], summary: Hapus berita, security: [{ bearerAuth: [] }], responses: { '200': { description: Dihapus } } }
+
+  # ============ ADMIN AGENDA ============
+  /api/admin/agenda:
+    get:
+      tags: [Admin Agenda]
+      summary: Daftar agenda
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Daftar agenda } }
+    post:
+      tags: [Admin Agenda]
+      summary: Buat agenda
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judul: { type: string }
+                deskripsi: { type: string }
+                bannerUrl: { type: string }
+                tanggalEvent: { type: string }
+                waktu: { type: string }
+                lokasi: { type: string }
+                status: { type: string, enum: [Draft, Published] }
+      responses: { '201': { description: Dibuat } }
+  /api/admin/agenda/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Admin Agenda], summary: Detail agenda, security: [{ bearerAuth: [] }], responses: { '200': { description: Detail }, '404': { $ref: '#/components/responses/NotFound' } } }
+    put: { tags: [Admin Agenda], summary: Perbarui agenda, security: [{ bearerAuth: [] }], responses: { '200': { description: Diperbarui } } }
+    delete: { tags: [Admin Agenda], summary: Hapus agenda, security: [{ bearerAuth: [] }], responses: { '200': { description: Dihapus } } }
+
+  # ============ ADMIN LOKER ============
+  /api/admin/loker:
+    get:
+      tags: [Admin Loker]
+      summary: Daftar lowongan
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Daftar loker } }
+    post:
+      tags: [Admin Loker]
+      summary: Buat lowongan
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                posisi: { type: string }
+                namaPerusahaan: { type: string }
+                websitePerusahaan: { type: string }
+                logoUrl: { type: string }
+                jenisPekerjaan: { type: string }
+                tipeLokasi: { type: string }
+                kota: { type: string }
+                deskripsi: { type: string }
+                skemaPelamaran: { type: string, enum: [internal, external] }
+                linkExternal: { type: string }
+                formLamaran: { type: array, items: { type: object } }
+                status: { type: string, enum: [Draft, Published] }
+      responses: { '201': { description: Dibuat } }
+  /api/admin/loker/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Admin Loker], summary: Detail lowongan, security: [{ bearerAuth: [] }], responses: { '200': { description: Detail }, '404': { $ref: '#/components/responses/NotFound' } } }
+    put: { tags: [Admin Loker], summary: Perbarui lowongan, security: [{ bearerAuth: [] }], responses: { '200': { description: Diperbarui } } }
+    delete: { tags: [Admin Loker], summary: Hapus lowongan, security: [{ bearerAuth: [] }], responses: { '200': { description: Dihapus } } }
+
+  # ============ ADMIN TESTIMONI ============
+  /api/admin/testimoni:
+    get:
+      tags: [Admin Testimoni]
+      summary: Daftar testimoni
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Daftar testimoni } }
+  /api/admin/testimoni/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Admin Testimoni], summary: Detail testimoni, security: [{ bearerAuth: [] }], responses: { '200': { description: Detail }, '404': { $ref: '#/components/responses/NotFound' } } }
+    put:
+      tags: [Admin Testimoni]
+      summary: Moderasi testimoni (ubah status/visibility)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [Pending, Approved, Rejected] }
+                visibility: { type: string, enum: [public, private] }
+      responses: { '200': { description: Diperbarui } }
+    delete: { tags: [Admin Testimoni], summary: Hapus testimoni, security: [{ bearerAuth: [] }], responses: { '200': { description: Dihapus } } }
+
+  # ============ ADMIN PEMILU ============
+  /api/admin/pemilu:
+    get:
+      tags: [Admin Pemilu]
+      summary: Daftar pemilu (modul terpisah)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: Daftar pemilu } }
+    post:
+      tags: [Admin Pemilu]
+      summary: Buat pemilu
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                judul: { type: string }
+                deskripsi: { type: string }
+                startDate: { type: string, format: date-time }
+                endDate: { type: string, format: date-time }
+                status: { type: string }
+      responses: { '201': { description: Dibuat } }
+  /api/admin/pemilu/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Admin Pemilu], summary: Detail pemilu, security: [{ bearerAuth: [] }], responses: { '200': { description: Detail }, '404': { $ref: '#/components/responses/NotFound' } } }
+    put: { tags: [Admin Pemilu], summary: Perbarui pemilu, security: [{ bearerAuth: [] }], responses: { '200': { description: Diperbarui } } }
+    delete: { tags: [Admin Pemilu], summary: Hapus pemilu, security: [{ bearerAuth: [] }], responses: { '200': { description: Dihapus } } }
+
+  # ============ NEW MISSING ENDPOINTS ============
+  /api/portal/berita:
+    get: { tags: [Portal Berita], summary: Daftar berita portal, responses: { '200': { description: Daftar berita } } }
+    post: { tags: [Portal Berita], summary: Buat berita (oleh alumni), security: [{ bearerAuth: [] }], responses: { '201': { description: Berita dibuat } } }
+  /api/portal/berita/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Portal Berita], summary: Detail berita portal, responses: { '200': { description: Detail berita }, '404': { $ref: '#/components/responses/NotFound' } } }
+
+  /api/portal/agenda:
+    get: { tags: [Portal Agenda], summary: Daftar agenda portal, responses: { '200': { description: Daftar agenda } } }
+    post: { tags: [Portal Agenda], summary: Buat agenda (oleh alumni), security: [{ bearerAuth: [] }], responses: { '201': { description: Agenda dibuat } } }
+  /api/portal/agenda/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Portal Agenda], summary: Detail agenda portal, responses: { '200': { description: Detail agenda }, '404': { $ref: '#/components/responses/NotFound' } } }
+  /api/portal/agenda/{id}/reservasi:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Portal Agenda], summary: Reservasi agenda, security: [{ bearerAuth: [] }], responses: { '200': { description: Reservasi berhasil } } }
+
+  /api/portal/loker:
+    get: { tags: [Portal Loker], summary: Daftar loker portal, responses: { '200': { description: Daftar loker } } }
+    post: { tags: [Portal Loker], summary: Buat loker (oleh alumni), security: [{ bearerAuth: [] }], responses: { '201': { description: Loker dibuat } } }
+  /api/portal/loker/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Portal Loker], summary: Detail loker portal, responses: { '200': { description: Detail loker }, '404': { $ref: '#/components/responses/NotFound' } } }
+  /api/portal/loker/{id}/apply:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Portal Loker], summary: Melamar pekerjaan, security: [{ bearerAuth: [] }], responses: { '200': { description: Lamaran berhasil } } }
+
+  /api/portal/alumni:
+    get: { tags: [Portal Alumni], summary: Direktori alumni, responses: { '200': { description: Daftar alumni } } }
+  /api/portal/alumni/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Portal Alumni], summary: Profil publik alumni, responses: { '200': { description: Detail alumni }, '404': { $ref: '#/components/responses/NotFound' } } }
+
+  /api/portal/lamaran:
+    get: { tags: [Portal Lamaran], summary: Daftar lamaran pekerjaan oleh alumni yang sedang login, security: [{ bearerAuth: [] }], responses: { '200': { description: Daftar lamaran } } }
+
+  /api/admin/portal-config:
+    get: { tags: [Portal Config], summary: Lihat konfigurasi portal (Admin), security: [{ bearerAuth: [] }], responses: { '200': { description: Konfigurasi portal } } }
+    put: { tags: [Portal Config], summary: Perbarui konfigurasi portal (Admin), security: [{ bearerAuth: [] }], responses: { '200': { description: Konfigurasi diperbarui } } }
+  /api/portal/config:
+    get: { tags: [Portal Config], summary: Lihat konfigurasi portal (Public), responses: { '200': { description: Konfigurasi portal } } }
+
+  /api/testimoni:
+    get: { tags: [Testimoni (Public)], summary: Daftar testimoni publik, responses: { '200': { description: Daftar testimoni } } }
+    post: { tags: [Testimoni (Public)], summary: Kirim testimoni (Alumni), security: [{ bearerAuth: [] }], responses: { '201': { description: Testimoni dikirim } } }
+
+  # ============ ADMIN SUB-ENDPOINTS TAMBAHAN ============
+  /api/elections/{id}/summary:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Elections (Public)], summary: Ringkasan pemilu, responses: { '200': { description: Ringkasan } } }
+  /api/admin/elections/{id}/summary:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Admin Elections], summary: Ringkasan pemilu (Admin), security: [{ bearerAuth: [] }], responses: { '200': { description: Ringkasan } } }
+
+  /api/upload/ijazah:
+    post: { tags: [Upload], summary: Unggah dokumen ijazah, security: [{ bearerAuth: [] }], requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { file: { type: string, format: binary } } } } } }, responses: { '200': { description: Berhasil } } }
+
+  /api/admin/alumni/{id}/role:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    put: { tags: [Admin Alumni], summary: Perbarui role/jabatan alumni, security: [{ bearerAuth: [] }], responses: { '200': { description: Diperbarui } } }
+
+  /api/admin/berita/{id}/approve:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Admin Berita], summary: Setujui berita, security: [{ bearerAuth: [] }], responses: { '200': { description: Disetujui } } }
+  /api/admin/berita/{id}/reject:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Admin Berita], summary: Tolak berita, security: [{ bearerAuth: [] }], responses: { '200': { description: Ditolak } } }
+
+  /api/admin/agenda/{id}/approve:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Admin Agenda], summary: Setujui agenda, security: [{ bearerAuth: [] }], responses: { '200': { description: Disetujui } } }
+  /api/admin/agenda/{id}/reject:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Admin Agenda], summary: Tolak agenda, security: [{ bearerAuth: [] }], responses: { '200': { description: Ditolak } } }
+
+  /api/admin/loker/{id}/approve:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Admin Loker], summary: Setujui loker, security: [{ bearerAuth: [] }], responses: { '200': { description: Disetujui } } }
+  /api/admin/loker/{id}/reject:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Admin Loker], summary: Tolak loker, security: [{ bearerAuth: [] }], responses: { '200': { description: Ditolak } } }
+
+  /api/admin/loker/{id}/lamaran/{lamaranId}/status:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: lamaranId, in: path, required: true, schema: { type: string } }
+    put: { tags: [Admin Loker], summary: Ubah status lamaran, security: [{ bearerAuth: [] }], responses: { '200': { description: Diperbarui } } }
+  /api/admin/loker/{id}/lamaran/{lamaranId}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: lamaranId, in: path, required: true, schema: { type: string } }
+    delete: { tags: [Admin Loker], summary: Hapus lamaran, security: [{ bearerAuth: [] }], responses: { '200': { description: Dihapus } } }
+

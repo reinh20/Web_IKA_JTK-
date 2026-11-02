@@ -1,0 +1,46 @@
+# OS & System
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp
+
+# Environment Secrets (Keep .env.example)
+.env
+.env.local
+.env.*.local
+*.env
+!*.env.example
+
+# IDE & Editor caches
+.vscode/
+.idea/
+.opencode/
+
+# Backend (PHP / Composer)
+vendor/
+ika-jtk-backend/vendor/
+composer.phar
+ika-jtk-backend/*.log
+
+# Frontend CMS (React, Vite, Node)
+node_modules/
+ika-jtk-cms/node_modules/
+dist/
+ika-jtk-cms/dist/
+.vite/
+eslint_report.txt
+
+# Frontend Portal (Flutter Web / Dart)
+.dart_tool/
+ika-jtk-portal/.dart_tool/
+build/
+ika-jtk-portal/build/
+.flutter-plugins
+.flutter-plugins-dependencies
+ika-jtk-portal/.flutter-plugins
+ika-jtk-portal/.flutter-plugins-dependencies
+
+# Third-party server binaries
+nginx-1.30.3/
+*.exe

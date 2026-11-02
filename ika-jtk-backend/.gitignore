@@ -1,0 +1,10 @@
+vendor/
+.env
+.env.*
+*.log
+public/uploads/
+
+.superpowers/
+
+# Ignore agents directory
+.agents/

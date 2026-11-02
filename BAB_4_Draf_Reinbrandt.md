@@ -1,0 +1,20 @@
+# BAB 4 SIMPULAN DAN SARAN
+
+## 4.1. Simpulan
+Berdasarkan kegiatan Kerja Praktik (KP) yang telah dilaksanakan di PT. Pilar Timur Teknologi (Digital Oasis) selama periode 22 Juni hingga 30 Juli 2026, dapat ditarik beberapa simpulan secara menyeluruh sebagai berikut:
+1. Pengembangan Sistem Informasi Alumni IKA JTK Polban (mencakup Portal Web, CMS Admin, dan Backend API) telah berhasil mengimplementasikan berbagai modul esensial yang menjembatani kebutuhan informasi, karir, keanggotaan, dan partisipasi demokrasi digital secara terpusat bagi alumni JTK Polban.
+2. Penanganan masalah beban komputasi server akibat unggahan berkas multimedia berukuran masif telah berhasil diatasi secara optimal melalui implementasi prapemrosesan di sisi klien (*client-side processing*). Teknik kompresi gambar dan penurunan resolusi (*downscaling*) yang memanfaatkan akselerasi *GPU Skia* pada aplikasi portal dan *Canvas HTML5* pada CMS terbukti secara nyata menghemat *bandwidth* operasional.
+3. Kebutuhan akan aktualitas data pada modul Pemilihan Umum (E-Voting) telah terjawab dengan baik melalui penerapan teknik *HTTP Polling* asinkron. Mekanisme ini memungkinkan penyajian statistik perolehan suara secara instan (*real-time*) kepada pemilih maupun panitia tanpa mengharuskan penyegaran halaman manual, dengan tetap menjaga integritas *1-account-1-vote*.
+4. Sistem antarmuka pemrograman aplikasi (API) telah diperkuat dari segi keamanan siber melalui implementasi mekanisme *error masking* dan penanganan pengecualian (*catch block logging*). Pendekatan ini terbukti mampu menutupi kerentanan kebocoran informasi struktural peladen (*raw exception*) ke ranah publik.
+5. Secara keseluruhan, pelaksanaan KP ini memperlihatkan bahwa teori komputasi terdistribusi, pengolahan citra digital, dan rekayasa perangkat lunak dari perkuliahan dapat diselaraskan secara langsung untuk memecahkan tantangan skalabilitas dan keamanan di ekosistem industri teknologi informasi.
+
+## 4.2. Saran
+Berdasarkan hasil refleksi dan evaluasi kegiatan Kerja Praktik (KP), berikut adalah saran-saran konstruktif yang dapat diberikan:
+
+### 4.2.1. Saran bagi Instansi/Perusahaan dan Proyek
+1. **Saran untuk Perusahaan (Digital Oasis):** Guna menekan potensi konflik sinkronisasi dan asimetri format data antara tim pengembang *backend* dan *frontend* di lingkungan kerja *agile*, sangat disarankan agar perusahaan menerapkan standarisasi dokumentasi kontrak API secara terpusat (misalnya menggunakan dokumentasi otomatis *Swagger* atau *Postman Collections*) dan memastikan kontrak tersebut final sebelum tahap implementasi kode dimulai.
+2. **Saran untuk Proyek (Sistem IKA JTK):** Dalam rangka menghadapi potensi lonjakan trafik (*traffic spike*) di masa mendatang—terutama saat hari puncak pemungutan suara (E-Voting)—disarankan agar fitur pemantauan *real-time* dimigrasikan dari mekanisme *HTTP Polling* (yang melontarkan *request* secara repetitif setiap 15 detik) ke teknologi *WebSocket*. Pembaruan arsitektural ini akan secara signifikan meringankan beban pemrosesan (*overhead*) peladen.
+
+### 4.2.2. Saran bagi Program Studi dan Kontribusi Keilmuan
+1. **Peningkatan Substansi Keamanan Siber (Cybersecurity):** Disarankan agar kurikulum mata kuliah pemrograman web lebih diperkaya dengan studi kasus industri mengenai perancangan API yang berorientasi pada ketahanan (*security-first API design*). Pembahasan difokuskan pada transisi antara teori kemudahan *debugging* di lingkungan lokal menuju standar produksi industri yang mengharuskan pembatasan *error exposure* untuk menghindari eksploitasi data oleh peretas.
+2. **Eksplorasi Rekayasa Prapemrosesan Sisi Klien (*Client-Side Processing*):** Untuk memperkaya literatur dan kontribusi keilmuan, mahasiswa disarankan untuk didorong mendalami arsitektur perangkat lunak modern (*Single Page Application*) yang mendistribusikan beban komputasi ke sisi peramban klien. Integrasi materi spesifik seperti manipulasi *Canvas API* atau *WebGL* untuk pra-kompresi data masif sebelum ditransmisikan ke server akan sangat selaras dengan tuntutan tren industri (*high performance frontend*).

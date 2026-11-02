@@ -1,0 +1,58 @@
+{
+    "name": "ika-jtk/backend-phalcon",
+    "description": "Backend for IKA JTK Alumni Portal using Phalcon",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "ext-phalcon": ">=5.0",
+        "ext-pdo": "*",
+        "firebase/php-jwt": "*",
+        "vlucas/phpdotenv": "^5.6",
+        "resend/resend-php": "^0.8.0",
+        "phpmailer/phpmailer": "^7.1",
+        "robmorgan/phinx": "0.13",
+        "aws/aws-sdk-php": "^3.300"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\Controllers\\": "app/controllers/",
+            "App\\Models\\": "app/models/",
+            "App\\Middleware\\": "app/middleware/",
+            "App\\Utils\\": "app/utils/",
+            "App\\Enums\\": "app/enums/",
+            "App\\Services\\": "app/services/",
+            "App\\Traits\\": "app/traits/"
+        }
+    },
+    "scripts": {
+        "migrate": "@php bin/phinx-migrate.php",
+        "migrate:rollback": "phinx rollback -c phinx.php",
+        "migrate:reset": "phinx rollback -c phinx.php -e development -t 0",
+        "migrate:refresh": [
+            "@migrate:reset",
+            "@migrate"
+        ],
+        "migrate:fresh": [
+            "@migrate:refresh",
+            "@seed"
+        ],
+        "migrate:status": "phinx status -c phinx.php",
+        "migrate:create": "phinx create -c phinx.php",
+        "seed": "phinx seed:run -c phinx.php",
+        "seed:create": "phinx seed:create -c phinx.php",
+        "seed:user-agreement": "phinx seed:run -s AlumniUserAgreementSeeder -c phinx.php",
+        "seed:admin-role-extras": "phinx seed:run -s AdminRoleExtraPermissionsSeeder -c phinx.php",
+        "db:setup": [
+            "@migrate",
+            "@seed"
+        ],
+        "uploads:migrate": "@php bin/migrate-uploads-to-spaces.php",
+        "thumbnails:backfill": "@php bin/backfill_thumbnails.php",
+        "no-alumni:backfill": "@php bin/backfill_no_alumni.php"
+    },
+    "scripts-descriptions": {
+        "uploads:migrate": "Migrasi file lama di public/uploads/ ke Spaces + update kolom URL di DB. Idempotent.",
+        "thumbnails:backfill": "Generate thumbnail untuk gambar yang belum punya versi _thumb di Spaces.",
+        "no-alumni:backfill": "Isi kolom noAlumni untuk alumni existing pakai snapshot COUNT (match nomor UI). Idempotent, skip soft-deleted."
+    }
+}
